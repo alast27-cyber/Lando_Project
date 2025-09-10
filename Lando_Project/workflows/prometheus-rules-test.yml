@@ -1,0 +1,8 @@
+name: Full CI/CD, Observability, and External-Metric HPA
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  schedule:
+    - cron: "0 2 * * *"
+# (truncated for brevity in this snippet - full content is from our final YAML)
