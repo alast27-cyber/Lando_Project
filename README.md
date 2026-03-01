@@ -65,6 +65,28 @@ Open `index.html` (or deploy on Vercel) to use a minimalistic UI with:
 - online knowledge commands
 - dedicated training page (`training.html`) for progress, data sources, and ETA
 
+
+## IAI Training Kernel Prototype (Python)
+A local-first three-layer kernel is available at:
+- `Lando_Project/chatbot/iai_kernel.py`
+
+It implements:
+- Reflex map responses (lowest energy path)
+- Instinct retrieval from learned memory (TF-IDF cosine similarity with fallback)
+- Cognition fallback generation for unseen queries
+- Compile-down behavior (new cognition answers are stored as instinct memory)
+- JSON persistence for saving/loading memory state
+
+Quick example:
+```python
+from Lando_Project.chatbot import IAIKernel
+
+k = IAIKernel()
+print(k.respond("hello"))
+print(k.respond("How do I tune an HPA?"))
+print(k.respond("How do I tune an HPA?"))
+```
+
 ## Run tests
 ```bash
 python3 -m unittest discover -s tests -p 'test_*.py'
