@@ -88,6 +88,30 @@ print(k.respond("How do I tune an HPA?"))
 print(k.respond("How do I tune an HPA?"))
 ```
 
+## Advanced CLL Training (PEFT + LoRA)
+For Layer-3 Cognition (CLL), the repo includes a prototype LoRA fine-tuning module:
+- `Lando_Project/chatbot/cll_lora_training.py`
+
+Why LoRA for CLL:
+- train only lightweight adapter weights instead of full-model updates
+- adapter artifacts are much smaller than full checkpoints
+- export path is aligned with local/browser loading workflows
+
+Expected dataset format (`.jsonl`):
+```json
+{"prompt": "Complex state query not solved by reflex/instinct", "response": "Desired CLL answer"}
+```
+
+Run prototype training:
+```bash
+python3 -m Lando_Project.chatbot.cll_lora_training path/to/complex_states.jsonl
+```
+
+Notes:
+- dependencies are optional and loaded lazily (`unsloth`, `trl`, `transformers`, `datasets`, `peft`)
+- module exports GGUF with `q4_k_m` quantization for lightweight local deployment
+- recommended workflow: collect Layer1/2 failures -> SFT with LoRA -> export GGUF -> store/load via local-first runtime
+
 ## Run tests
 ```bash
 python3 -m unittest discover -s tests -p 'test_*.py'
