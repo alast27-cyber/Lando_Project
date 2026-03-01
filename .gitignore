@@ -1,0 +1,4 @@
+__pycache__/
+*.pyc
+
+Lando_Project/chatbot/iai_ips_events.json
