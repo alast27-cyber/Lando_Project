@@ -1,3 +1,4 @@
+import json
 import unittest
 from pathlib import Path
 
@@ -35,6 +36,14 @@ class WebBlueprintArtifactTests(unittest.TestCase):
         index = Path('index.html').read_text()
         self.assertTrue(training.exists())
         self.assertIn('/training.html', index)
+
+    def test_vercel_rewrites_cover_root_and_training(self):
+        for cfg in [Path('vercel.json'), Path('Lando_Project/vercel.json')]:
+            data = json.loads(cfg.read_text())
+            rewrites = data.get('rewrites', [])
+            mapping = {(r.get('source'), r.get('destination')) for r in rewrites}
+            self.assertIn(('/', '/index.html'), mapping)
+            self.assertIn(('/training', '/training.html'), mapping)
 
 
 if __name__ == '__main__':
