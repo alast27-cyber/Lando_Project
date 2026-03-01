@@ -6,6 +6,7 @@ from .engine import OfflineChatbot
 def main() -> None:
     bot = OfflineChatbot()
     print("Offline Chatbot ready. Type '/help' for commands. Type 'quit' to exit.")
+    print(f"Cognition mode: {bot.cognition_mode}")
 
     while True:
         try:
