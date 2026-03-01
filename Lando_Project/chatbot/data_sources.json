@@ -1,0 +1,19 @@
+{
+  "sources": [
+    {
+      "type": "local_file",
+      "name": "aios-concept",
+      "path": "Lando_Project/infra/CONCEPT_IAI.md"
+    },
+    {
+      "type": "local_file",
+      "name": "autoscaling-guide",
+      "path": "Lando_Project/infra/README_AUTOSCALING.md"
+    },
+    {
+      "type": "wikipedia",
+      "name": "wikipedia",
+      "language": "en"
+    }
+  ]
+}

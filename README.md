@@ -1,56 +1,68 @@
-# Lando Project - Offline Chatbot
+# Lando Project - Offline/Online Hybrid Chatbot
 
-This repository includes a **fully offline chatbot** that can run in CLI or browser mode without external API calls.
+Lando now supports a hybrid chat runtime:
+- **offline cognition** (default)
+- optional **online mode** with data-source injection
+
+No paid API integration is required.
 
 ## Features
-- Local rule-based intent matching (greeting, coding, productivity, motivation, farewell)
-- Session memory (name capture and topic counters)
-- **Communication cognition modes**:
-  - `rule-based` (default, deterministic)
-  - `local-llm` (Python optional backend using local Transformers model if available)
-- CLI commands:
-  - `/help`
-  - `/summary`
-  - `/time`
-  - `/mode`
-  - `quit`
+- Local rule-based intent matching + trained intent model
+- Session memory (name capture + topic counters)
+- Communication cognition modes:
+  - `rule-based` (deterministic)
+  - `local-llm` (optional local Transformers backend)
+- **Online mode commands**:
+  - `/online` enable knowledge injection
+  - `/offline` disable knowledge injection
+  - `/sources` list configured data sources
+- Existing commands:
+  - `/help`, `/summary`, `/time`, `/mode`, `quit`
 
-## Run the chatbot (CLI)
+## Run chatbot (CLI)
 ```bash
 python3 -m Lando_Project.chatbot.app
 ```
 
-## Optional local LLM backend (still offline)
-`OfflineChatbot` auto-attempts local Transformers loading (`distilgpt2`) and silently falls back to rule-based mode if dependencies or model are unavailable.
+## Run local AI training
+Train/update Lando's offline intent model:
+```bash
+python3 -m Lando_Project.chatbot.training
+```
+Model output:
+- `Lando_Project/chatbot/intent_model.json`
 
-If you want true local LLM cognition in CLI:
+## Configure data source injection
+Data sources are defined in:
+- `Lando_Project/chatbot/data_sources.json`
+
+Built-in source types:
+- `local_file`: injects matching content from local files
+- `wikipedia`: fetches summary context in online mode
+
+Example chat sequence:
+```text
+/online
+/sources
+Tell me about autoscaling
+```
+
+## Optional local LLM backend (still local)
 ```bash
 pip install transformers torch
 python3 -m Lando_Project.chatbot.app
 ```
-
-Then check mode inside chat:
+Check current cognition mode with:
 ```text
 /mode
 ```
 
-
-## Run local AI training
-Train Lando's offline intent cognition model (Naive Bayes) and persist it to:
-`Lando_Project/chatbot/intent_model.json`
-
-```bash
-python3 -m Lando_Project.chatbot.training
-```
-
-This improves intent prediction for phrasing that may not match hard-coded keywords.
-
 ## Browser interface
 Open `index.html` (or deploy on Vercel) to use:
-- Enhanced chat bubbles
-- Quick command/topic chips
-- Mode switcher (`rule-based` / `local-llm-lite`)
-- Typing indicator
+- enhanced chat bubbles
+- quick command/topic chips
+- mode switcher (`rule-based` / `local-llm-lite`)
+- typing indicator
 
 ## Run tests
 ```bash
@@ -58,8 +70,5 @@ python3 -m unittest discover -s tests -p 'test_*.py'
 ```
 
 ## Vercel deployment
-This repository includes a static `index.html` + `vercel.json` setup so deployments do not return `404: NOT_FOUND`.
-
-- Vercel entrypoint: `index.html`
-- Universal rewrite: all paths route to `index.html`
-- Chat runs fully in-browser (no API calls)
+- Entrypoint: `index.html`
+- Rewrites: configured in `vercel.json` so all routes resolve to `index.html`

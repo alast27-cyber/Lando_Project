@@ -11,6 +11,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Protocol, Tuple
 
+from .data_sources import DataSourceInjector
+
 
 @dataclass
 class Intent:
@@ -24,6 +26,7 @@ class ChatState:
     user_name: Optional[str] = None
     topic_counts: Dict[str, int] = field(default_factory=dict)
     turns: int = 0
+    online_mode: bool = False
 
 
 class CognitionBackend(Protocol):
@@ -171,6 +174,7 @@ class OfflineChatbot:
         seed: int = 42,
         use_llm: bool = True,
         llm_model_name: str = "distilgpt2",
+        data_sources_config: Optional[Path] = None,
     ) -> None:
         self._rng = random.Random(seed)
         self.state = ChatState()
@@ -183,6 +187,9 @@ class OfflineChatbot:
                 self._backend = LocalLLMCognition(model_name=llm_model_name)
             except Exception:
                 self._backend = self._rule_backend
+
+        config_path = data_sources_config or Path(__file__).with_name("data_sources.json")
+        self._injector = DataSourceInjector.from_config(config_path)
 
     @property
     def cognition_mode(self) -> str:
@@ -205,8 +212,22 @@ class OfflineChatbot:
             return f"Local time is {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}."
         if lowered in {"/mode", "mode"}:
             return f"Active cognition mode: {self.cognition_mode}."
+        if lowered in {"/online", "online"}:
+            self.state.online_mode = True
+            return "Online mode enabled. I can inject configured external knowledge sources."
+        if lowered in {"/offline", "offline"}:
+            self.state.online_mode = False
+            return "Online mode disabled. I am now using core local cognition only."
+        if lowered in {"/sources", "sources"}:
+            sources = ", ".join(self._injector.list_sources()) or "none"
+            return f"Configured data sources: {sources}."
 
-        return self._backend.generate(text, self.state)
+        base_response = self._backend.generate(text, self.state)
+        if self.state.online_mode:
+            injected = self._injector.query(text)
+            if injected:
+                return f"{base_response}\n\n[Injected knowledge]\n{injected}"
+        return base_response
 
     def _capture_name(self, text: str) -> None:
         match = re.search(
@@ -219,7 +240,7 @@ class OfflineChatbot:
 
     def _help_message(self) -> str:
         return (
-            "Commands: /help, /summary, /time, /mode, quit. "
+            "Commands: /help, /summary, /time, /mode, /online, /offline, /sources, quit. "
             "I run fully offline with optional local LLM cognition."
         )
 
@@ -230,7 +251,7 @@ class OfflineChatbot:
         ) or "none"
         return (
             f"Session summary -> user: {name}, turns: {self.state.turns}, "
-            f"topics: {topics}, mode: {self.cognition_mode}."
+            f"topics: {topics}, mode: {self.cognition_mode}, online: {self.state.online_mode}."
         )
 
     def _build_intents(self) -> List[Intent]:

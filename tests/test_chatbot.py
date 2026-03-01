@@ -1,4 +1,7 @@
+import json
+import tempfile
 import unittest
+from pathlib import Path
 
 from Lando_Project.chatbot.engine import OfflineChatbot
 from Lando_Project.chatbot.training import run_training
@@ -46,6 +49,33 @@ class OfflineChatbotTests(unittest.TestCase):
             or "test" in response.lower()
             or "refactor" in response.lower()
         )
+
+    def test_online_mode_injects_data_source_context(self):
+        with tempfile.TemporaryDirectory() as td:
+            td_path = Path(td)
+            doc_path = td_path / "notes.txt"
+            doc_path.write_text("Lando knows Kubernetes autoscaling and HPA tuning best practices.")
+            cfg_path = td_path / "sources.json"
+            cfg_path.write_text(
+                json.dumps(
+                    {
+                        "sources": [
+                            {
+                                "type": "local_file",
+                                "name": "notes",
+                                "path": str(doc_path),
+                            }
+                        ]
+                    }
+                )
+            )
+
+            bot = OfflineChatbot(seed=1, use_llm=False, data_sources_config=cfg_path)
+            self.assertIn("enabled", bot.respond("/online").lower())
+            self.assertIn("notes", bot.respond("/sources").lower())
+            out = bot.respond("Tell me about autoscaling")
+            self.assertIn("[Injected knowledge]", out)
+            self.assertIn("notes:", out)
 
 
 if __name__ == "__main__":
