@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lando Offline Chatbot</title>
+    <style>
+      body { font-family: Arial, sans-serif; background:#0f172a; color:#e2e8f0; margin:0; }
+      .wrap { max-width: 860px; margin: 0 auto; padding: 24px; }
+      .card { background:#111827; border:1px solid #334155; border-radius:12px; padding:16px; }
+      h1 { margin-top:0; }
+      #chat { min-height: 360px; max-height: 52vh; overflow:auto; padding:12px; background:#020617; border-radius:8px; border:1px solid #1e293b; }
+      .msg { margin:10px 0; line-height:1.4; }
+      .you { color:#93c5fd; }
+      .bot { color:#86efac; }
+      .row { display:flex; gap:10px; margin-top:12px; }
+      input { flex:1; padding:12px; border-radius:8px; border:1px solid #334155; background:#0b1220; color:#e2e8f0; }
+      button { padding:12px 16px; border-radius:8px; border:none; background:#2563eb; color:white; cursor:pointer; }
+      .help { color:#94a3b8; font-size: 0.9rem; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="card">
+        <h1>Offline Chatbot (Vercel-ready)</h1>
+        <p class="help">No API calls. Logic runs entirely in your browser.</p>
+        <div id="chat"></div>
+        <div class="row">
+          <input id="input" placeholder="Type a message... (/help, /summary, /time, quit)" />
+          <button id="send">Send</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const state = { userName: null, turns: 0, topicCounts: {} };
+      const intents = [
+        { name: "greeting", patterns: ["hello","hi","hey","good morning","good evening"], responses: ["Hello {name}! Great to chat with you.","Hey {name}, how can I help today?","Hi {name}! Tell me what's on your mind."] },
+        { name: "productivity", patterns: ["focus","productive","plan","schedule","todo"], responses: ["Pick 1 priority, do 25 focused minutes, then review.","Use a 3-step plan: goal, first task, start now."] },
+        { name: "coding", patterns: ["code","python","bug","debug","test","refactor"], responses: ["Debug loop: reproduce, isolate, test the fix.","Write a tiny test first, then implement minimal change."] },
+        { name: "motivation", patterns: ["tired","motivate","stuck","stress","overwhelmed"], responses: ["Start small. One completed step builds momentum.","Shrink the problem by 10x and solve the first tiny part."] },
+        { name: "farewell", patterns: ["bye","goodbye","see you","later"], responses: ["Take care {name}!","Goodbye {name}. Come back anytime."] }
+      ];
+
+      const chat = document.getElementById("chat");
+      const input = document.getElementById("input");
+      const send = document.getElementById("send");
+
+      function add(role, text) {
+        const div = document.createElement("div");
+        div.className = `msg ${role}`;
+        div.textContent = `${role === "you" ? "you" : "bot"}> ${text}`;
+        chat.appendChild(div);
+        chat.scrollTop = chat.scrollHeight;
+      }
+
+      function captureName(text) {
+        const m = text.match(/\b(?:i am|i'm|my name is)\s+([A-Za-z][A-Za-z\-']{1,30})/i);
+        if (m) state.userName = m[1];
+      }
+
+      function personalize(msg) {
+        return msg.replaceAll("{name}", state.userName || "there");
+      }
+
+      function summary() {
+        const topics = Object.entries(state.topicCounts).map(([k,v]) => `${k}:${v}`).join(", ") || "none";
+        return `Session summary -> user: ${state.userName || "Unknown"}, turns: ${state.turns}, topics: ${topics}.`;
+      }
+
+      function matchIntent(lowered) {
+        let best = null;
+        let bestHits = 0;
+        for (const intent of intents) {
+          const hits = intent.patterns.reduce((n,p) => n + (lowered.includes(p) ? 1 : 0), 0);
+          if (hits > bestHits) { bestHits = hits; best = intent; }
+        }
+        return bestHits ? best : null;
+      }
+
+      function respond(text) {
+        const msg = text.trim();
+        if (!msg) return "I didn't catch that. Could you type something?";
+        state.turns += 1;
+        captureName(msg);
+        const lowered = msg.toLowerCase();
+        if (lowered === "/help" || lowered === "help") {
+          return "Commands: /help, /summary, /time, quit. I run fully offline in your browser.";
+        }
+        if (lowered === "/summary" || lowered === "summary") return summary();
+        if (lowered === "/time" || lowered === "time") return `Local time is ${new Date().toLocaleString()}.`;
+
+        const intent = matchIntent(lowered);
+        if (intent) {
+          state.topicCounts[intent.name] = (state.topicCounts[intent.name] || 0) + 1;
+          const choice = intent.responses[Math.floor(Math.random() * intent.responses.length)];
+          return personalize(choice);
+        }
+        if (msg.includes("?")) {
+          return "I run fully offline. Ask about greetings, productivity, coding, motivation, or try /help.";
+        }
+        return "Thanks for sharing. Try /help to see available commands.";
+      }
+
+      function onSend() {
+        const text = input.value;
+        if (!text.trim()) return;
+        add("you", text);
+        add("bot", respond(text));
+        input.value = "";
+      }
+
+      send.addEventListener("click", onSend);
+      input.addEventListener("keydown", (e) => { if (e.key === "Enter") onSend(); });
+      add("bot", "Offline Chatbot ready. Type /help for commands.");
+    </script>
+  </body>
+</html>

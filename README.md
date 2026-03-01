@@ -25,3 +25,10 @@ python3 -m unittest discover -s tests -p 'test_*.py'
 ## Notes
 - No network calls are used for chat responses.
 - Existing autoscaling and monitoring files remain intact.
+
+## Vercel deployment
+This repository now includes a static `index.html` + `vercel.json` setup so deployments do not return `404: NOT_FOUND`.
+
+- Vercel entrypoint: `index.html`
+- Universal rewrite: all paths route to `index.html`
+- Chat runs fully in-browser (no API calls)
