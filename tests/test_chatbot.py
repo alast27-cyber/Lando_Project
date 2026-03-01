@@ -1,9 +1,14 @@
 import unittest
 
 from Lando_Project.chatbot.engine import OfflineChatbot
+from Lando_Project.chatbot.training import run_training
 
 
 class OfflineChatbotTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        run_training()
+
     def test_greeting_intent(self):
         bot = OfflineChatbot(seed=1, use_llm=False)
         response = bot.respond("hello")
@@ -32,6 +37,15 @@ class OfflineChatbotTests(unittest.TestCase):
         bot = OfflineChatbot(seed=1, use_llm=False)
         response = bot.respond("/mode")
         self.assertIn("rule-based", response)
+
+    def test_trained_intent_model_assists_matching(self):
+        bot = OfflineChatbot(seed=1, use_llm=False)
+        response = bot.respond("there is a software issue in my app")
+        self.assertTrue(
+            "debug" in response.lower()
+            or "test" in response.lower()
+            or "refactor" in response.lower()
+        )
 
 
 if __name__ == "__main__":

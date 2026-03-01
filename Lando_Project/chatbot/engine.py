@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import json
+import math
 import random
 import re
 from dataclasses import dataclass, field
 from datetime import datetime
+from pathlib import Path
 from typing import Dict, List, Optional, Protocol, Tuple
 
 
@@ -30,18 +33,72 @@ class CognitionBackend(Protocol):
         ...
 
 
+class TrainedIntentModel:
+    """Tiny Naive Bayes inference model trained offline from local samples."""
+
+    TOKEN_RE = re.compile(r"[a-zA-Z']+")
+
+    def __init__(self, model_path: Optional[Path] = None) -> None:
+        path = model_path or Path(__file__).with_name("intent_model.json")
+        self._available = path.exists()
+        self._classes: List[str] = []
+        self._priors: Dict[str, float] = {}
+        self._likelihoods: Dict[str, Dict[str, float]] = {}
+        self._vocab: set[str] = set()
+
+        if self._available:
+            payload = json.loads(path.read_text())
+            self._classes = payload.get("classes", [])
+            self._priors = payload.get("priors", {})
+            self._likelihoods = payload.get("likelihoods", {})
+            self._vocab = set(payload.get("vocab", []))
+
+    @property
+    def available(self) -> bool:
+        return self._available
+
+    def predict(self, text: str) -> Optional[str]:
+        if not self._available or not text.strip():
+            return None
+
+        tokens = [t.lower() for t in self.TOKEN_RE.findall(text)]
+        if not tokens:
+            return None
+
+        best_label = None
+        best_score = -10e9
+        for label in self._classes:
+            score = float(self._priors.get(label, -10e9))
+            lmap = self._likelihoods.get(label, {})
+            for token in tokens:
+                if token in self._vocab:
+                    score += float(lmap.get(token, -12.0))
+            if score > best_score:
+                best_score = score
+                best_label = label
+        return best_label
+
+
 class RuleBasedCognition:
-    """Deterministic local cognition."""
+    """Deterministic local cognition with trained-intent assist."""
 
     name = "rule-based"
 
     def __init__(self, intents: List[Intent], rng: random.Random) -> None:
         self._intents = intents
         self._rng = rng
+        self._trained_model = TrainedIntentModel()
 
     def generate(self, prompt: str, state: ChatState) -> str:
         lowered = prompt.lower()
         intent = self._match_intent(lowered)
+
+        # fallback to trained predictor if keyword matcher misses
+        if not intent and self._trained_model.available:
+            predicted = self._trained_model.predict(prompt)
+            if predicted:
+                intent = next((i for i in self._intents if i.name == predicted), None)
+
         if intent:
             state.topic_counts[intent.name] = state.topic_counts.get(intent.name, 0) + 1
             msg = self._rng.choice(intent.responses)
@@ -72,11 +129,7 @@ class RuleBasedCognition:
 
 
 class LocalLLMCognition:
-    """Local generative cognition (transformers), no external API usage.
-
-    This backend is optional and only activates when `transformers` + `torch`
-    are installed and a local model is loadable.
-    """
+    """Local generative cognition (transformers), no external API usage."""
 
     name = "local-llm"
 
@@ -129,7 +182,6 @@ class OfflineChatbot:
             try:
                 self._backend = LocalLLMCognition(model_name=llm_model_name)
             except Exception:
-                # Safe offline fallback when model/deps are unavailable.
                 self._backend = self._rule_backend
 
     @property

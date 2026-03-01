@@ -34,6 +34,17 @@ Then check mode inside chat:
 /mode
 ```
 
+
+## Run local AI training
+Train Lando's offline intent cognition model (Naive Bayes) and persist it to:
+`Lando_Project/chatbot/intent_model.json`
+
+```bash
+python3 -m Lando_Project.chatbot.training
+```
+
+This improves intent prediction for phrasing that may not match hard-coded keywords.
+
 ## Browser interface
 Open `index.html` (or deploy on Vercel) to use:
 - Enhanced chat bubbles
