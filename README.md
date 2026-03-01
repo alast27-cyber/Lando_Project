@@ -72,3 +72,19 @@ python3 -m unittest discover -s tests -p 'test_*.py'
 ## Vercel deployment
 - Entrypoint: `index.html`
 - Rewrites: `vercel.json` routes all paths to `index.html`
+
+
+## WebGPU Local-First IAI Blueprint
+A browser-first architecture blueprint and boilerplate are provided under:
+- `Lando_Project/web/README_IAI_WEBGPU.md`
+- `Lando_Project/web/iai-kernel.js`
+- `Lando_Project/web/service-worker.js`
+- `Lando_Project/web/opfs-store.js`
+- `Lando_Project/web/data-ingestion-worker.js`
+- `Lando_Project/web/main.js`
+
+This package implements:
+- Energy Minimization Driver-based layer selection (IRL -> ILL -> CLL)
+- Service Worker persistence hooks for background training/sync
+- OPFS storage initialization for model/tensor persistence
+- Worker-based data ingestion pipeline for autonomous knowledge injection
