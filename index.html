@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lando Chat</title>
+    <style>
+      body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, sans-serif; background: #fafafa; color: #111; }
+      .wrap { max-width: 760px; margin: 0 auto; padding: 24px 16px 80px; }
+      h1 { font-size: 1.1rem; margin: 0 0 6px; font-weight: 600; }
+      .muted { color: #666; font-size: 0.9rem; margin-bottom: 14px; }
+      #chat { border: 1px solid #e6e6e6; border-radius: 10px; padding: 12px; min-height: 340px; background: #fff; overflow-y: auto; }
+      .m { margin: 8px 0; padding: 10px 12px; border-radius: 8px; line-height: 1.45; white-space: pre-wrap; }
+      .you { background: #f3f4f6; }
+      .bot { background: #eef6ff; }
+      .row { display: flex; gap: 8px; margin-top: 10px; }
+      input { flex: 1; padding: 10px; border: 1px solid #d9d9d9; border-radius: 8px; }
+      button, select { padding: 10px; border: 1px solid #d9d9d9; border-radius: 8px; background: #fff; }
+      .tools { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+      .chips { display:flex; gap:6px; flex-wrap: wrap; margin: 10px 0; }
+      .chip, .nav { font-size: .82rem; border: 1px solid #ddd; padding: 4px 8px; border-radius: 999px; cursor: pointer; background: #fff; text-decoration: none; color: #111; }
+      .nav.active { background:#eef6ff; border-color:#bfd8ff; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="tools">
+        <a class="nav active" href="/index.html">Chat</a>
+        <a class="nav" href="/training.html">Training</a>
+      </div>
+
+      <h1>Lando chatbot</h1>
+      <div class="muted">Minimal UI • offline-first • optional online knowledge injection</div>
+
+      <div class="tools">
+        <select id="mode">
+          <option value="rule">rule-based</option>
+          <option value="llm">local-llm-lite</option>
+        </select>
+        <button class="chip" data-text="/online">/online</button>
+        <button class="chip" data-text="/offline">/offline</button>
+        <button class="chip" data-text="/sources">/sources</button>
+        <button class="chip" data-text="/trainer">/trainer</button>
+      </div>
+
+      <div class="chips">
+        <div class="chip" data-text="/help">/help</div>
+        <div class="chip" data-text="/summary">/summary</div>
+        <div class="chip" data-text="Tell me about autoscaling">ask knowledge</div>
+      </div>
+
+      <div id="chat"></div>
+      <div class="row">
+        <input id="input" placeholder="Type message..." />
+        <button id="send">Send</button>
+      </div>
+    </div>
+
+    <script>
+      const state = { userName: null, turns: 0, topicCounts: {}, mode: "rule", online: false };
+      const chat = document.getElementById("chat");
+      const input = document.getElementById("input");
+      const mode = document.getElementById("mode");
+      const dataSources = ["aios-concept", "autoscaling-guide", "wikipedia"];
+
+      const intents = [
+        { name: "greeting", patterns: ["hello","hi","hey"], responses: ["Hello {name}.","Hi {name}."] },
+        { name: "productivity", patterns: ["focus","plan","schedule","todo"], responses: ["Start with one priority and execute for 25 minutes."] },
+        { name: "coding", patterns: ["python","debug","bug","test","refactor","software"], responses: ["Reproduce, isolate, and verify with a focused test."] },
+        { name: "motivation", patterns: ["stuck","overwhelmed","tired"], responses: ["Break it into one tiny next step."] },
+        { name: "farewell", patterns: ["bye","goodbye"], responses: ["Take care {name}."] }
+      ];
+
+      const localKnowledge = [
+        "IAI concept: instinct-first decision pathways reduce energy burn.",
+        "Autoscaling guide: combine CPU and external metrics to preserve homeostasis.",
+      ];
+
+      function persistTrainingMetrics() {
+        const payload = {
+          turns: state.turns,
+          mode: state.mode,
+          online: state.online,
+          dataSources,
+          topicCounts: state.topicCounts,
+          updatedAt: Date.now(),
+        };
+        localStorage.setItem("landoTrainingMetrics", JSON.stringify(payload));
+      }
+
+      function add(role, text) {
+        const d = document.createElement("div");
+        d.className = `m ${role}`;
+        d.textContent = `${role}> ${text}`;
+        chat.appendChild(d);
+        chat.scrollTop = chat.scrollHeight;
+      }
+
+      function capName(t) {
+        const m = t.match(/\b(?:i am|i'm|my name is)\s+([A-Za-z][A-Za-z\-']{1,30})/i);
+        if (m) state.userName = m[1];
+      }
+
+      function matchIntent(lower) {
+        let best = null, hits = 0;
+        for (const i of intents) {
+          const h = i.patterns.reduce((n,p)=>n+(lower.includes(p)?1:0),0);
+          if (h > hits) { hits = h; best = i; }
+        }
+        return best;
+      }
+
+      function llmLite(msg, intent) {
+        if (intent) return `Reasoned response: ${intent.responses[0].replaceAll("{name}", state.userName || "there")}`;
+        return `Reasoned response: I understood '${msg}' and can expand with local context.`;
+      }
+
+      function injectKnowledge(text) {
+        if (!state.online) return null;
+        const t = text.toLowerCase();
+        if (t.includes("autoscaling") || t.includes("iai") || t.includes("hpa")) {
+          return localKnowledge.join(" ");
+        }
+        return null;
+      }
+
+      function respond(raw) {
+        const msg = raw.trim();
+        if (!msg) return "Please type a message.";
+        state.turns += 1;
+        capName(msg);
+        const l = msg.toLowerCase();
+
+        if (l === "/help") return "Commands: /help /summary /mode /online /offline /sources /trainer /train-now.";
+        if (l === "/summary") return `turns:${state.turns}, online:${state.online}, mode:${state.mode}`;
+        if (l === "/mode") return `mode:${state.mode === 'llm' ? 'local-llm-lite' : 'rule-based'}`;
+        if (l === "/online") { state.online = true; persistTrainingMetrics(); return "Online mode enabled."; }
+        if (l === "/offline") { state.online = false; persistTrainingMetrics(); return "Online mode disabled."; }
+        if (l === "/sources") return `sources: ${dataSources.join(', ')}`;
+        if (l === "/trainer") return "trainer=running:true (background IAI-IPS training in CLI runtime)";
+        if (l === "/train-now") return "manual_train=triggered";
+
+        const intent = matchIntent(l);
+        if (intent) {
+          state.topicCounts[intent.name] = (state.topicCounts[intent.name] || 0) + 1;
+        }
+
+        let base = intent
+          ? (state.mode === "llm" ? llmLite(msg, intent) : intent.responses[0].replaceAll("{name}", state.userName || "there"))
+          : (state.mode === "llm" ? llmLite(msg, null) : "Try /help for available commands.");
+
+        const k = injectKnowledge(msg);
+        if (k) base += `\n\n[Injected knowledge]\n${k}`;
+        persistTrainingMetrics();
+        return base;
+      }
+
+      function send() {
+        const t = input.value;
+        if (!t.trim()) return;
+        add("you", t);
+        input.value = "";
+        add("bot", respond(t));
+      }
+
+      document.getElementById("send").addEventListener("click", send);
+      input.addEventListener("keydown", (e) => { if (e.key === "Enter") send(); });
+      mode.addEventListener("change", () => {
+        state.mode = mode.value;
+        persistTrainingMetrics();
+        add("bot", `mode switched to ${state.mode}`);
+      });
+      document.querySelectorAll(".chip").forEach((c) => {
+        c.addEventListener("click", () => {
+          if (c.dataset.text) input.value = c.dataset.text;
+          input.focus();
+        });
+      });
+
+      persistTrainingMetrics();
+      add("bot", "Lando ready. Minimal interface loaded.");
+    </script>
+  </body>
+</html>

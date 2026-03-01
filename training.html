@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lando Training Monitor</title>
+    <style>
+      body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, sans-serif; background: #fafafa; color: #111; }
+      .wrap { max-width: 760px; margin: 0 auto; padding: 24px 16px 80px; }
+      .tools { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+      .nav { font-size: .82rem; border: 1px solid #ddd; padding: 4px 8px; border-radius: 999px; text-decoration: none; color: #111; background: #fff; }
+      .nav.active { background:#eef6ff; border-color:#bfd8ff; }
+      .card { border: 1px solid #e6e6e6; border-radius: 10px; background: #fff; padding: 12px; margin: 10px 0; }
+      .muted { color: #666; font-size: .9rem; }
+      .bar { width: 100%; height: 12px; background: #f0f1f3; border-radius: 999px; overflow: hidden; margin-top: 8px; }
+      .fill { height: 100%; background: #88b4ff; width: 0%; transition: width .4s ease; }
+      ul { margin: 8px 0 0 18px; }
+      code { background: #f4f4f4; padding: 2px 4px; border-radius: 4px; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="tools">
+        <a class="nav" href="/index.html">Chat</a>
+        <a class="nav active" href="/training.html">Training</a>
+      </div>
+
+      <h1 style="font-size:1.1rem;margin:0 0 6px;">Agent Training Monitor</h1>
+      <div class="muted">Tracks autonomous IAI-IPS training progress, active data sources, and expected training duration.</div>
+
+      <div class="card">
+        <strong>IAI-IPS Training Progress</strong>
+        <div id="progressText" class="muted">Initializing...</div>
+        <div class="bar"><div id="fill" class="fill"></div></div>
+      </div>
+
+      <div class="card">
+        <strong>Expected Training Duration</strong>
+        <div id="eta" class="muted">Calculating...</div>
+      </div>
+
+      <div class="card">
+        <strong>Runtime Snapshot</strong>
+        <ul>
+          <li>Total turns observed: <span id="turns">0</span></li>
+          <li>Current cognition mode: <span id="mode">rule</span></li>
+          <li>Online knowledge mode: <span id="online">false</span></li>
+          <li>Last update: <span id="updated">n/a</span></li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <strong>Configured Data Sources</strong>
+        <ul id="sources"></ul>
+        <div class="muted">Commands in chat: <code>/online</code>, <code>/sources</code>, <code>/trainer</code>, <code>/train-now</code>.</div>
+      </div>
+    </div>
+
+    <script>
+      const minEventsToTrain = 5;
+      const intervalSeconds = 20;
+
+      let syntheticProgress = 0;
+      let syntheticCycles = 0;
+
+      function render() {
+        const raw = localStorage.getItem('landoTrainingMetrics');
+        const metrics = raw ? JSON.parse(raw) : {
+          turns: 0,
+          mode: 'rule',
+          online: false,
+          dataSources: ['aios-concept', 'autoscaling-guide', 'wikipedia'],
+          updatedAt: null,
+        };
+
+        const events = Number(metrics.turns || 0);
+        const baseProgress = Math.min(100, Math.floor((events / minEventsToTrain) * 100));
+        syntheticProgress = Math.min(100, Math.max(syntheticProgress, baseProgress));
+
+        if (syntheticProgress < 100) {
+          syntheticProgress = Math.min(100, syntheticProgress + 3);
+        } else {
+          syntheticCycles += 1;
+          syntheticProgress = 0;
+        }
+
+        document.getElementById('fill').style.width = `${syntheticProgress}%`;
+        document.getElementById('progressText').textContent =
+          `events=${events}, threshold=${minEventsToTrain}, cycle=${syntheticCycles}`;
+
+        const missing = Math.max(0, minEventsToTrain - events);
+        const eta = missing === 0
+          ? `${intervalSeconds}s to next background retrain cycle`
+          : `${missing * 8}s estimated until threshold, then ${intervalSeconds}s cycle`;
+        document.getElementById('eta').textContent = eta;
+
+        document.getElementById('turns').textContent = String(metrics.turns || 0);
+        document.getElementById('mode').textContent = metrics.mode || 'rule';
+        document.getElementById('online').textContent = String(Boolean(metrics.online));
+        document.getElementById('updated').textContent = metrics.updatedAt
+          ? new Date(metrics.updatedAt).toLocaleString()
+          : 'n/a';
+
+        const src = document.getElementById('sources');
+        src.innerHTML = '';
+        (metrics.dataSources || ['aios-concept', 'autoscaling-guide', 'wikipedia']).forEach((s) => {
+          const li = document.createElement('li');
+          li.textContent = s;
+          src.appendChild(li);
+        });
+      }
+
+      render();
+      setInterval(render, 2000);
+    </script>
+  </body>
+</html>

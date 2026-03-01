@@ -1,8 +1,84 @@
+---
 name: Full CI/CD, Observability, and External-Metric HPA
-on:
+
+"on":
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
   schedule:
     - cron: "0 2 * * *"
-# (truncated for brevity in this snippet - full content is from our final YAML)
+
+permissions:
+  contents: read
+
+jobs:
+  lint-and-validate-manifests:
+    name: Lint and validate Kubernetes manifests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install yamllint and kubeconform
+        run: |
+          python3 -m pip install --upgrade pip
+          pip3 install yamllint
+          KUBECONFORM_URL="https://github.com/yannh/kubeconform/releases/download"
+          curl -sSL \
+            "${KUBECONFORM_URL}/v0.6.7/kubeconform-linux-amd64.tar.gz" \
+            -o kubeconform.tar.gz
+          tar -xzf kubeconform.tar.gz kubeconform
+          mkdir -p "$HOME/.local/bin"
+          mv kubeconform "$HOME/.local/bin/kubeconform"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Run yamllint
+        run: |
+          yamllint \
+            Lando_Project/monitoring/prometheus-adapter-config.yaml \
+            Lando_Project/helm/templates/hpa.yaml \
+            Lando_Project/workflows/prometheus-rules-test.yml
+
+      - name: Validate HPA schema
+        run: |
+          kubeconform -strict -summary Lando_Project/helm/templates/hpa.yaml
+
+  verify-prometheus-adapter-config:
+    name: Verify Prometheus adapter metric mapping
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Ensure expected external metric exists
+        run: |
+          grep -q "http_requests_per_pod" \
+            Lando_Project/monitoring/prometheus-adapter-config.yaml
+          grep -q "rate(http_requests_total\[2m\])" \
+            Lando_Project/monitoring/prometheus-adapter-config.yaml
+
+  autoscaling-docs-sanity:
+    name: Validate autoscaling docs mention required secrets
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check documentation contains required secrets
+        run: |
+          for secret in \
+            KUBECONFIG_DATA CLOUD_PROVIDER CLUSTER_NAME SERVICE_URL; do
+            grep -q "$secret" \
+              Lando_Project/infra/README_AUTOSCALING.md
+          done
+
+      - name: Check concept paper includes core architecture terms
+        run: |
+          for phrase in \
+            "Instinctive Artificial Intelligence (IAI)" \
+            "Decagonal Column Geometry" \
+            "Instinctive Problem Solving (IPS)" \
+            "Energy Minimization Driver (EMD)"; do
+            grep -q "$phrase" \
+              Lando_Project/infra/CONCEPT_IAI.md
+          done
