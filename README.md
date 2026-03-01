@@ -89,3 +89,11 @@ This package implements:
 - Service Worker persistence hooks for background training/sync
 - OPFS storage initialization for model/tensor persistence
 - Worker-based data ingestion pipeline for autonomous knowledge injection
+
+
+### Vercel root-directory compatibility
+This repo includes deployment entry files in both:
+- repo root (`index.html`, `training.html`, `vercel.json`)
+- `Lando_Project/` subfolder (`Lando_Project/index.html`, `Lando_Project/training.html`, `Lando_Project/vercel.json`)
+
+So Vercel works whether project root is configured as `/` or `Lando_Project/`.
