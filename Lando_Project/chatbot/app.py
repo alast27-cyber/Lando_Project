@@ -21,6 +21,8 @@ def main() -> None:
 
         print("bot>", bot.respond(user_input))
 
+    bot._trainer.stop()
+
 
 if __name__ == "__main__":
     main()

@@ -11,6 +11,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Protocol, Tuple
 
+from .autonomous_training import AutonomousIAIIPSTrainer
 from .data_sources import DataSourceInjector
 
 
@@ -27,6 +28,7 @@ class ChatState:
     topic_counts: Dict[str, int] = field(default_factory=dict)
     turns: int = 0
     online_mode: bool = False
+    last_intent: Optional[str] = None
 
 
 class CognitionBackend(Protocol):
@@ -104,8 +106,11 @@ class RuleBasedCognition:
 
         if intent:
             state.topic_counts[intent.name] = state.topic_counts.get(intent.name, 0) + 1
+            state.last_intent = intent.name
             msg = self._rng.choice(intent.responses)
             return msg.replace("{name}", state.user_name or "there")
+
+        state.last_intent = "unknown"
 
         if "?" in prompt:
             return (
@@ -175,6 +180,8 @@ class OfflineChatbot:
         use_llm: bool = True,
         llm_model_name: str = "distilgpt2",
         data_sources_config: Optional[Path] = None,
+        autonomous_training: bool = True,
+        training_interval_s: int = 20,
     ) -> None:
         self._rng = random.Random(seed)
         self.state = ChatState()
@@ -190,6 +197,16 @@ class OfflineChatbot:
 
         config_path = data_sources_config or Path(__file__).with_name("data_sources.json")
         self._injector = DataSourceInjector.from_config(config_path)
+
+        model_path = Path(__file__).with_name("intent_model.json")
+        events_path = Path(__file__).with_name("iai_ips_events.json")
+        self._trainer = AutonomousIAIIPSTrainer(
+            model_path=model_path,
+            events_path=events_path,
+            interval_s=training_interval_s,
+        )
+        if autonomous_training:
+            self._trainer.start()
 
     @property
     def cognition_mode(self) -> str:
@@ -221,8 +238,15 @@ class OfflineChatbot:
         if lowered in {"/sources", "sources"}:
             sources = ", ".join(self._injector.list_sources()) or "none"
             return f"Configured data sources: {sources}."
+        if lowered in {"/trainer", "trainer"}:
+            return self._trainer.status()
+        if lowered in {"/train-now", "train-now"}:
+            ok = self._trainer.train_once()
+            return "manual_train=updated" if ok else "manual_train=skipped (not enough events)"
 
         base_response = self._backend.generate(text, self.state)
+        self._trainer.record(text, self.state.last_intent or "unknown")
+
         if self.state.online_mode:
             injected = self._injector.query(text)
             if injected:
@@ -240,7 +264,7 @@ class OfflineChatbot:
 
     def _help_message(self) -> str:
         return (
-            "Commands: /help, /summary, /time, /mode, /online, /offline, /sources, quit. "
+            "Commands: /help, /summary, /time, /mode, /online, /offline, /sources, /trainer, /train-now, quit. "
             "I run fully offline with optional local LLM cognition."
         )
 

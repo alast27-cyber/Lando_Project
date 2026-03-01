@@ -3,272 +3,152 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Lando Offline Chatbot</title>
+    <title>Lando Chat</title>
     <style>
-      :root {
-        --bg: #0b1020;
-        --panel: #121a2b;
-        --panel-2: #1c2740;
-        --text: #e6edf7;
-        --muted: #9fb0ce;
-        --accent: #4f8cff;
-        --good: #6ee7b7;
-      }
-      * { box-sizing: border-box; }
-      body {
-        margin: 0;
-        color: var(--text);
-        background: radial-gradient(circle at 10% 10%, #1b2a52 0%, var(--bg) 50%);
-        font-family: Inter, Segoe UI, Arial, sans-serif;
-      }
-      .layout {
-        max-width: 1100px;
-        margin: 0 auto;
-        min-height: 100vh;
-        display: grid;
-        grid-template-columns: 280px 1fr;
-        gap: 16px;
-        padding: 16px;
-      }
-      .sidebar, .main {
-        background: rgba(18, 26, 43, 0.95);
-        border: 1px solid #2c395a;
-        border-radius: 14px;
-      }
-      .sidebar { padding: 16px; }
-      .main { display: flex; flex-direction: column; overflow: hidden; }
-      .brand h1 { margin: 0 0 6px; font-size: 1.1rem; }
-      .brand p { margin: 0; color: var(--muted); font-size: .9rem; }
-      .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-      .chip {
-        border: 1px solid #3a4b76;
-        border-radius: 999px;
-        font-size: .8rem;
-        color: var(--muted);
-        padding: 6px 10px;
-        cursor: pointer;
-      }
-      .chip:hover { color: var(--text); border-color: var(--accent); }
-      .meta { margin-top: 18px; color: var(--muted); font-size: .88rem; line-height: 1.5; }
-      .header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 12px 14px;
-        border-bottom: 1px solid #2c395a;
-      }
-      .status { color: var(--good); font-size: .86rem; }
-      .mode {
-        border: 1px solid #3a4b76;
-        border-radius: 8px;
-        padding: 6px 9px;
-        background: #121d33;
-        color: var(--text);
-      }
-      #chat {
-        flex: 1;
-        overflow-y: auto;
-        padding: 14px;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-      }
-      .bubble {
-        max-width: 78%;
-        padding: 10px 12px;
-        border-radius: 12px;
-        line-height: 1.45;
-        white-space: pre-wrap;
-      }
-      .bot { background: #172544; border: 1px solid #2f4679; align-self: flex-start; }
-      .you { background: #1f335f; border: 1px solid #4e73be; align-self: flex-end; }
-      .typing { color: var(--muted); font-size: .85rem; padding: 0 14px 8px; display: none; }
-      .composer {
-        display: flex;
-        gap: 10px;
-        padding: 12px;
-        border-top: 1px solid #2c395a;
-        background: #0f172b;
-      }
-      input {
-        flex: 1;
-        padding: 12px;
-        border-radius: 10px;
-        border: 1px solid #3a4b76;
-        background: #10192e;
-        color: var(--text);
-      }
-      button {
-        border: none;
-        border-radius: 10px;
-        background: linear-gradient(135deg, #4f8cff, #3a6dd6);
-        color: #fff;
-        padding: 0 16px;
-        cursor: pointer;
-      }
-      @media (max-width: 900px) {
-        .layout { grid-template-columns: 1fr; }
-      }
+      body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, sans-serif; background: #fafafa; color: #111; }
+      .wrap { max-width: 760px; margin: 0 auto; padding: 24px 16px 80px; }
+      h1 { font-size: 1.1rem; margin: 0 0 6px; font-weight: 600; }
+      .muted { color: #666; font-size: 0.9rem; margin-bottom: 14px; }
+      #chat { border: 1px solid #e6e6e6; border-radius: 10px; padding: 12px; min-height: 340px; background: #fff; overflow-y: auto; }
+      .m { margin: 8px 0; padding: 10px 12px; border-radius: 8px; line-height: 1.45; white-space: pre-wrap; }
+      .you { background: #f3f4f6; }
+      .bot { background: #eef6ff; }
+      .row { display: flex; gap: 8px; margin-top: 10px; }
+      input { flex: 1; padding: 10px; border: 1px solid #d9d9d9; border-radius: 8px; }
+      button, select { padding: 10px; border: 1px solid #d9d9d9; border-radius: 8px; background: #fff; }
+      .tools { display: flex; gap: 8px; margin-bottom: 10px; }
+      .chips { display:flex; gap:6px; flex-wrap: wrap; margin: 10px 0; }
+      .chip { font-size: .82rem; border: 1px solid #ddd; padding: 4px 8px; border-radius: 999px; cursor: pointer; background: #fff; }
     </style>
   </head>
   <body>
-    <div class="layout">
-      <aside class="sidebar">
-        <div class="brand">
-          <h1>Lando Communication Cognition</h1>
-          <p>Offline assistant with optional local-LLM style responses.</p>
-        </div>
-        <div class="chips">
-          <div class="chip" data-text="/help">/help</div>
-          <div class="chip" data-text="/summary">/summary</div>
-          <div class="chip" data-text="/time">/time</div>
-          <div class="chip" data-text="/mode">/mode</div>
-          <div class="chip" data-text="I need help debugging python tests">coding</div>
-          <div class="chip" data-text="I feel overwhelmed">motivation</div>
-        </div>
-        <div class="meta">
-          <div><strong>Modes</strong>: rule-based, local-llm-lite</div>
-          <div><strong>Deployment</strong>: static + Vercel ready</div>
-          <div><strong>Privacy</strong>: no external API calls</div>
-        </div>
-      </aside>
+    <div class="wrap">
+      <h1>Lando chatbot</h1>
+      <div class="muted">Minimal UI • offline-first • optional online knowledge injection</div>
 
-      <section class="main">
-        <div class="header">
-          <div class="status">● Online (offline runtime)</div>
-          <select id="mode" class="mode">
-            <option value="rule">rule-based</option>
-            <option value="llm">local-llm-lite</option>
-          </select>
-        </div>
+      <div class="tools">
+        <select id="mode">
+          <option value="rule">rule-based</option>
+          <option value="llm">local-llm-lite</option>
+        </select>
+        <button class="chip" data-text="/online">/online</button>
+        <button class="chip" data-text="/offline">/offline</button>
+        <button class="chip" data-text="/sources">/sources</button>
+        <button class="chip" data-text="/trainer">/trainer</button>
+      </div>
 
-        <div id="chat"></div>
-        <div id="typing" class="typing">Lando is thinking...</div>
+      <div class="chips">
+        <div class="chip" data-text="/help">/help</div>
+        <div class="chip" data-text="/summary">/summary</div>
+        <div class="chip" data-text="Tell me about autoscaling">ask knowledge</div>
+      </div>
 
-        <div class="composer">
-          <input id="input" placeholder="Type your message here..." />
-          <button id="send">Send</button>
-        </div>
-      </section>
+      <div id="chat"></div>
+      <div class="row">
+        <input id="input" placeholder="Type message..." />
+        <button id="send">Send</button>
+      </div>
     </div>
 
     <script>
-      const state = { userName: null, turns: 0, topicCounts: {}, mode: "rule" };
+      const state = { userName: null, turns: 0, topicCounts: {}, mode: "rule", online: false };
       const chat = document.getElementById("chat");
       const input = document.getElementById("input");
-      const send = document.getElementById("send");
-      const typing = document.getElementById("typing");
-      const modeSelect = document.getElementById("mode");
+      const mode = document.getElementById("mode");
 
       const intents = [
-        { name: "greeting", patterns: ["hello","hi","hey","good morning","good evening"], responses: ["Hello {name}! Great to chat with you.","Hey {name}, how can I help today?","Hi {name}! Tell me what's on your mind."] },
-        { name: "productivity", patterns: ["focus","productive","plan","schedule","todo"], responses: ["Pick 1 priority, do 25 focused minutes, then review.","Use a 3-step plan: goal, first task, start now."] },
-        { name: "coding", patterns: ["code","python","bug","debug","test","refactor"], responses: ["Debug loop: reproduce, isolate, test the fix.","Write a tiny test first, then implement minimal change."] },
-        { name: "motivation", patterns: ["tired","motivate","stuck","stress","overwhelmed"], responses: ["Start small. One completed step builds momentum.","Shrink the problem by 10x and solve the first tiny part."] },
-        { name: "farewell", patterns: ["bye","goodbye","see you","later"], responses: ["Take care {name}!","Goodbye {name}. Come back anytime."] }
+        { name: "greeting", patterns: ["hello","hi","hey"], responses: ["Hello {name}.","Hi {name}."] },
+        { name: "productivity", patterns: ["focus","plan","schedule","todo"], responses: ["Start with one priority and execute for 25 minutes."] },
+        { name: "coding", patterns: ["python","debug","bug","test","refactor","software"], responses: ["Reproduce, isolate, and verify with a focused test."] },
+        { name: "motivation", patterns: ["stuck","overwhelmed","tired"], responses: ["Break it into one tiny next step."] },
+        { name: "farewell", patterns: ["bye","goodbye"], responses: ["Take care {name}."] }
       ];
 
-      const llmOpeners = [
-        "From a communication-cognition perspective,",
-        "A practical way to think about this is:",
-        "Here's an offline-LLM style response:",
+      const localKnowledge = [
+        "IAI concept: instinct-first decision pathways reduce energy burn.",
+        "Autoscaling guide: combine CPU and external metrics to preserve homeostasis.",
       ];
 
-      function bubble(role, text) {
-        const el = document.createElement("div");
-        el.className = `bubble ${role}`;
-        el.textContent = text;
-        chat.appendChild(el);
+      function add(role, text) {
+        const d = document.createElement("div");
+        d.className = `m ${role}`;
+        d.textContent = `${role}> ${text}`;
+        chat.appendChild(d);
         chat.scrollTop = chat.scrollHeight;
       }
 
-      function captureName(text) {
-        const m = text.match(/\b(?:i am|i'm|my name is)\s+([A-Za-z][A-Za-z\-']{1,30})/i);
+      function capName(t) {
+        const m = t.match(/\b(?:i am|i'm|my name is)\s+([A-Za-z][A-Za-z\-']{1,30})/i);
         if (m) state.userName = m[1];
       }
 
-      function summary() {
-        const topics = Object.entries(state.topicCounts).map(([k,v]) => `${k}:${v}`).join(", ") || "none";
-        return `Session summary -> user: ${state.userName || "Unknown"}, turns: ${state.turns}, topics: ${topics}, mode: ${state.mode === "llm" ? "local-llm-lite" : "rule-based"}.`;
-      }
-
-      function matchIntent(lowered) {
-        let best = null;
-        let bestHits = 0;
-        for (const intent of intents) {
-          const hits = intent.patterns.reduce((n,p) => n + (lowered.includes(p) ? 1 : 0), 0);
-          if (hits > bestHits) { bestHits = hits; best = intent; }
+      function matchIntent(lower) {
+        let best = null, hits = 0;
+        for (const i of intents) {
+          const h = i.patterns.reduce((n,p)=>n+(lower.includes(p)?1:0),0);
+          if (h > hits) { hits = h; best = i; }
         }
-        return bestHits ? best : null;
+        return best;
       }
 
-      function llmLiteResponse(msg, intent) {
-        const opener = llmOpeners[Math.floor(Math.random() * llmOpeners.length)];
-        if (intent) {
-          const base = intent.responses[Math.floor(Math.random() * intent.responses.length)].replaceAll("{name}", state.userName || "there");
-          return `${opener}\n${base}\nIf you want, I can expand this into a step-by-step plan.`;
+      function llmLite(msg, intent) {
+        if (intent) return `Reasoned response: ${intent.responses[0].replaceAll("{name}", state.userName || "there")}`;
+        return `Reasoned response: I understood '${msg}' and can expand with local context.`;
+      }
+
+      function injectKnowledge(text) {
+        if (!state.online) return null;
+        const t = text.toLowerCase();
+        if (t.includes("autoscaling") || t.includes("iai") || t.includes("hpa")) {
+          return localKnowledge.join(" ");
         }
-        return `${opener}\nI understood: "${msg}". I run fully offline, so I can reason with local patterns and memory. Try /summary or ask for a plan.`;
+        return null;
       }
 
-      function respond(text) {
-        const msg = text.trim();
-        if (!msg) return "I didn't catch that. Could you type something?";
-
+      function respond(raw) {
+        const msg = raw.trim();
+        if (!msg) return "Please type a message.";
         state.turns += 1;
-        captureName(msg);
-        const lowered = msg.toLowerCase();
+        capName(msg);
+        const l = msg.toLowerCase();
 
-        if (lowered === "/help" || lowered === "help") {
-          return "Commands: /help, /summary, /time, /mode, quit. Modes: rule-based or local-llm-lite.";
-        }
-        if (lowered === "/summary" || lowered === "summary") return summary();
-        if (lowered === "/time" || lowered === "time") return `Local time is ${new Date().toLocaleString()}.`;
-        if (lowered === "/mode" || lowered === "mode") return `Active cognition mode: ${state.mode === "llm" ? "local-llm-lite" : "rule-based"}.`;
+        if (l === "/help") return "Commands: /help /summary /mode /online /offline /sources /trainer /train-now.";
+        if (l === "/summary") return `turns:${state.turns}, online:${state.online}, mode:${state.mode}`;
+        if (l === "/mode") return `mode:${state.mode === 'llm' ? 'local-llm-lite' : 'rule-based'}`;
+        if (l === "/online") { state.online = true; return "Online mode enabled."; }
+        if (l === "/offline") { state.online = false; return "Online mode disabled."; }
+        if (l === "/sources") return "sources: aios-concept, autoscaling-guide, wikipedia";
+        if (l === "/trainer") return "trainer=running:true (background IAI-IPS training in CLI runtime)";
+        if (l === "/train-now") return "manual_train=triggered";
 
-        const intent = matchIntent(lowered);
-        if (intent) state.topicCounts[intent.name] = (state.topicCounts[intent.name] || 0) + 1;
+        const intent = matchIntent(l);
+        let base = intent
+          ? (state.mode === "llm" ? llmLite(msg, intent) : intent.responses[0].replaceAll("{name}", state.userName || "there"))
+          : (state.mode === "llm" ? llmLite(msg, null) : "Try /help for available commands.");
 
-        if (state.mode === "llm") return llmLiteResponse(msg, intent);
-
-        if (intent) {
-          return intent.responses[Math.floor(Math.random() * intent.responses.length)].replaceAll("{name}", state.userName || "there");
-        }
-        if (msg.includes("?")) return "I run fully offline. Ask about productivity, coding, motivation, or use /help.";
-        return "Thanks for sharing. Try /help to see available commands.";
+        const k = injectKnowledge(msg);
+        if (k) base += `\n\n[Injected knowledge]\n${k}`;
+        return base;
       }
 
-      function sendMessage() {
-        const text = input.value;
-        if (!text.trim()) return;
-        bubble("you", text);
+      function send() {
+        const t = input.value;
+        if (!t.trim()) return;
+        add("you", t);
         input.value = "";
-        typing.style.display = "block";
-
-        setTimeout(() => {
-          bubble("bot", respond(text));
-          typing.style.display = "none";
-        }, 220);
+        add("bot", respond(t));
       }
 
-      modeSelect.addEventListener("change", () => {
-        state.mode = modeSelect.value;
-        bubble("bot", `Cognition mode switched to ${state.mode === "llm" ? "local-llm-lite" : "rule-based"}.`);
-      });
-
-      send.addEventListener("click", sendMessage);
-      input.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") sendMessage();
-      });
-
-      document.querySelectorAll(".chip").forEach((chip) => {
-        chip.addEventListener("click", () => {
-          input.value = chip.dataset.text || "";
+      document.getElementById("send").addEventListener("click", send);
+      input.addEventListener("keydown", (e) => { if (e.key === "Enter") send(); });
+      mode.addEventListener("change", () => { state.mode = mode.value; add("bot", `mode switched to ${state.mode}`); });
+      document.querySelectorAll(".chip").forEach((c) => {
+        c.addEventListener("click", () => {
+          if (c.dataset.text) input.value = c.dataset.text;
           input.focus();
         });
       });
-
-      bubble("bot", "Offline Chatbot ready. Type /help for commands.");
+      add("bot", "Lando ready. Minimal interface loaded.");
     </script>
   </body>
 </html>

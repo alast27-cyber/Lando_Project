@@ -1,21 +1,21 @@
 # Lando Project - Offline/Online Hybrid Chatbot
 
-Lando now supports a hybrid chat runtime:
-- **offline cognition** (default)
-- optional **online mode** with data-source injection
-
-No paid API integration is required.
+Lando now supports a hybrid runtime with:
+- offline cognition (default)
+- optional online knowledge injection
+- autonomous background IAI-IPS training
 
 ## Features
 - Local rule-based intent matching + trained intent model
 - Session memory (name capture + topic counters)
 - Communication cognition modes:
-  - `rule-based` (deterministic)
+  - `rule-based`
   - `local-llm` (optional local Transformers backend)
-- **Online mode commands**:
-  - `/online` enable knowledge injection
-  - `/offline` disable knowledge injection
-  - `/sources` list configured data sources
+- Online mode commands:
+  - `/online`, `/offline`, `/sources`
+- Trainer commands:
+  - `/trainer` status
+  - `/train-now` trigger immediate training cycle
 - Existing commands:
   - `/help`, `/summary`, `/time`, `/mode`, `quit`
 
@@ -24,45 +24,45 @@ No paid API integration is required.
 python3 -m Lando_Project.chatbot.app
 ```
 
-## Run local AI training
-Train/update Lando's offline intent model:
+## Autonomous IAI-IPS training
+Lando continuously records intent-labeled events and retrains in the background.
+
+Artifacts:
+- model: `Lando_Project/chatbot/intent_model.json`
+- events log: `Lando_Project/chatbot/iai_ips_events.json`
+
+Manual training:
 ```bash
 python3 -m Lando_Project.chatbot.training
 ```
-Model output:
-- `Lando_Project/chatbot/intent_model.json`
+
+In-chat controls:
+```text
+/trainer
+/train-now
+```
 
 ## Configure data source injection
-Data sources are defined in:
+Data sources config:
 - `Lando_Project/chatbot/data_sources.json`
 
 Built-in source types:
-- `local_file`: injects matching content from local files
-- `wikipedia`: fetches summary context in online mode
+- `local_file`
+- `wikipedia`
 
-Example chat sequence:
+Example:
 ```text
 /online
 /sources
 Tell me about autoscaling
 ```
 
-## Optional local LLM backend (still local)
-```bash
-pip install transformers torch
-python3 -m Lando_Project.chatbot.app
-```
-Check current cognition mode with:
-```text
-/mode
-```
-
 ## Browser interface
-Open `index.html` (or deploy on Vercel) to use:
-- enhanced chat bubbles
-- quick command/topic chips
-- mode switcher (`rule-based` / `local-llm-lite`)
-- typing indicator
+Open `index.html` (or deploy on Vercel) to use a minimalistic UI with:
+- compact message panel
+- quick chips
+- mode toggle
+- online knowledge commands
 
 ## Run tests
 ```bash
@@ -71,4 +71,4 @@ python3 -m unittest discover -s tests -p 'test_*.py'
 
 ## Vercel deployment
 - Entrypoint: `index.html`
-- Rewrites: configured in `vercel.json` so all routes resolve to `index.html`
+- Rewrites: `vercel.json` routes all paths to `index.html`
