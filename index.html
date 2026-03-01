@@ -16,13 +16,19 @@
       .row { display: flex; gap: 8px; margin-top: 10px; }
       input { flex: 1; padding: 10px; border: 1px solid #d9d9d9; border-radius: 8px; }
       button, select { padding: 10px; border: 1px solid #d9d9d9; border-radius: 8px; background: #fff; }
-      .tools { display: flex; gap: 8px; margin-bottom: 10px; }
+      .tools { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
       .chips { display:flex; gap:6px; flex-wrap: wrap; margin: 10px 0; }
-      .chip { font-size: .82rem; border: 1px solid #ddd; padding: 4px 8px; border-radius: 999px; cursor: pointer; background: #fff; }
+      .chip, .nav { font-size: .82rem; border: 1px solid #ddd; padding: 4px 8px; border-radius: 999px; cursor: pointer; background: #fff; text-decoration: none; color: #111; }
+      .nav.active { background:#eef6ff; border-color:#bfd8ff; }
     </style>
   </head>
   <body>
     <div class="wrap">
+      <div class="tools">
+        <a class="nav active" href="/index.html">Chat</a>
+        <a class="nav" href="/training.html">Training</a>
+      </div>
+
       <h1>Lando chatbot</h1>
       <div class="muted">Minimal UI • offline-first • optional online knowledge injection</div>
 
@@ -55,6 +61,7 @@
       const chat = document.getElementById("chat");
       const input = document.getElementById("input");
       const mode = document.getElementById("mode");
+      const dataSources = ["aios-concept", "autoscaling-guide", "wikipedia"];
 
       const intents = [
         { name: "greeting", patterns: ["hello","hi","hey"], responses: ["Hello {name}.","Hi {name}."] },
@@ -68,6 +75,18 @@
         "IAI concept: instinct-first decision pathways reduce energy burn.",
         "Autoscaling guide: combine CPU and external metrics to preserve homeostasis.",
       ];
+
+      function persistTrainingMetrics() {
+        const payload = {
+          turns: state.turns,
+          mode: state.mode,
+          online: state.online,
+          dataSources,
+          topicCounts: state.topicCounts,
+          updatedAt: Date.now(),
+        };
+        localStorage.setItem("landoTrainingMetrics", JSON.stringify(payload));
+      }
 
       function add(role, text) {
         const d = document.createElement("div");
@@ -115,19 +134,24 @@
         if (l === "/help") return "Commands: /help /summary /mode /online /offline /sources /trainer /train-now.";
         if (l === "/summary") return `turns:${state.turns}, online:${state.online}, mode:${state.mode}`;
         if (l === "/mode") return `mode:${state.mode === 'llm' ? 'local-llm-lite' : 'rule-based'}`;
-        if (l === "/online") { state.online = true; return "Online mode enabled."; }
-        if (l === "/offline") { state.online = false; return "Online mode disabled."; }
-        if (l === "/sources") return "sources: aios-concept, autoscaling-guide, wikipedia";
+        if (l === "/online") { state.online = true; persistTrainingMetrics(); return "Online mode enabled."; }
+        if (l === "/offline") { state.online = false; persistTrainingMetrics(); return "Online mode disabled."; }
+        if (l === "/sources") return `sources: ${dataSources.join(', ')}`;
         if (l === "/trainer") return "trainer=running:true (background IAI-IPS training in CLI runtime)";
         if (l === "/train-now") return "manual_train=triggered";
 
         const intent = matchIntent(l);
+        if (intent) {
+          state.topicCounts[intent.name] = (state.topicCounts[intent.name] || 0) + 1;
+        }
+
         let base = intent
           ? (state.mode === "llm" ? llmLite(msg, intent) : intent.responses[0].replaceAll("{name}", state.userName || "there"))
           : (state.mode === "llm" ? llmLite(msg, null) : "Try /help for available commands.");
 
         const k = injectKnowledge(msg);
         if (k) base += `\n\n[Injected knowledge]\n${k}`;
+        persistTrainingMetrics();
         return base;
       }
 
@@ -141,13 +165,19 @@
 
       document.getElementById("send").addEventListener("click", send);
       input.addEventListener("keydown", (e) => { if (e.key === "Enter") send(); });
-      mode.addEventListener("change", () => { state.mode = mode.value; add("bot", `mode switched to ${state.mode}`); });
+      mode.addEventListener("change", () => {
+        state.mode = mode.value;
+        persistTrainingMetrics();
+        add("bot", `mode switched to ${state.mode}`);
+      });
       document.querySelectorAll(".chip").forEach((c) => {
         c.addEventListener("click", () => {
           if (c.dataset.text) input.value = c.dataset.text;
           input.focus();
         });
       });
+
+      persistTrainingMetrics();
       add("bot", "Lando ready. Minimal interface loaded.");
     </script>
   </body>

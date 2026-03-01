@@ -1,4 +1,3 @@
-import json
 import unittest
 from pathlib import Path
 
@@ -21,6 +20,12 @@ class WebBlueprintArtifactTests(unittest.TestCase):
         doc = Path('Lando_Project/web/README_IAI_WEBGPU.md').read_text()
         self.assertIn('```mermaid', doc)
         self.assertIn('Energy Minimization Driver', doc)
+
+    def test_training_page_exists_and_is_linked(self):
+        training = Path('training.html')
+        index = Path('index.html').read_text()
+        self.assertTrue(training.exists())
+        self.assertIn('/training.html', index)
 
 
 if __name__ == '__main__':

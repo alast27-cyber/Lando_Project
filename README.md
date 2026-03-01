@@ -63,6 +63,7 @@ Open `index.html` (or deploy on Vercel) to use a minimalistic UI with:
 - quick chips
 - mode toggle
 - online knowledge commands
+- dedicated training page (`training.html`) for progress, data sources, and ETA
 
 ## Run tests
 ```bash
