@@ -76,6 +76,7 @@ It implements:
 - Cognition fallback generation for unseen queries
 - Compile-down behavior (new cognition answers are stored as instinct memory)
 - JSON persistence for saving/loading memory state
+- Bounded memory and duplicate-query compile-down handling
 
 Quick example:
 ```python

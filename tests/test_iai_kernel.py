@@ -32,6 +32,19 @@ class IAIKernelTests(unittest.TestCase):
             restored.load_memory(p)
             self.assertEqual(restored.memory_size, 1)
 
+    def test_repeated_cognition_does_not_duplicate_memory(self):
+        kernel = IAIKernel(reflex_map={}, instinct_threshold=1.1)
+        kernel.respond("repeat me")
+        kernel.respond("repeat me")
+        self.assertEqual(kernel.memory_size, 1)
+
+    def test_memory_cap_is_enforced(self):
+        kernel = IAIKernel(reflex_map={}, max_memory_items=2)
+        kernel.respond("q1")
+        kernel.respond("q2")
+        kernel.respond("q3")
+        self.assertEqual(kernel.memory_size, 2)
+
 
 if __name__ == "__main__":
     unittest.main()

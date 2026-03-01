@@ -52,7 +52,12 @@ class TrainedIntentModel:
         self._vocab: set[str] = set()
 
         if self._available:
-            payload = json.loads(path.read_text())
+            try:
+                payload = json.loads(path.read_text())
+            except json.JSONDecodeError:
+                self._available = False
+                payload = {}
+
             self._classes = payload.get("classes", [])
             self._priors = payload.get("priors", {})
             self._likelihoods = payload.get("likelihoods", {})

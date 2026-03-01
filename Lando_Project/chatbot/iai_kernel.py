@@ -34,6 +34,7 @@ class IAIKernel:
         self,
         reflex_map: Optional[Dict[str, str]] = None,
         instinct_threshold: float = 0.78,
+        max_memory_items: int = 500,
     ) -> None:
         self.reflex_map = reflex_map or {
             "hello": "Hello! Nice to meet you.",
@@ -42,6 +43,7 @@ class IAIKernel:
         }
         self.instinct_threshold = instinct_threshold
         self._memory: List[Dict[str, str]] = []
+        self._max_memory_items = max_memory_items
 
     @property
     def memory_size(self) -> int:
@@ -65,7 +67,7 @@ class IAIKernel:
             return self._payload(instinct_hit["answer"], decision)
 
         answer = self._cognition(text)
-        self._memory.append({"query": text, "answer": answer})
+        self._remember(text, answer)
         decision = EMDDecision(layer="cognition", confidence=0.55, energy_cost=1.0)
         return self._payload(answer, decision)
 
@@ -106,17 +108,32 @@ class IAIKernel:
             sims = cosine_similarity(matrix[-1], matrix[:-1]).flatten()
             idx = int(sims.argmax())
             return self._memory[idx], float(sims[idx])
-        except Exception:
-            # Fallback: token-overlap cosine.
-            q_tokens = self._token_counts(text)
-            best_item: Optional[Dict[str, str]] = None
-            best_score = 0.0
-            for item in self._memory:
-                score = self._cosine_counts(q_tokens, self._token_counts(item["query"]))
-                if score > best_score:
-                    best_score = score
-                    best_item = item
-            return best_item, best_score
+        except (ImportError, ValueError):
+            return self._token_overlap_retrieval(text)
+
+
+    def _remember(self, query: str, answer: str) -> None:
+        # Prevent duplicate growth when the same query compiles repeatedly.
+        for item in self._memory:
+            if item["query"].strip().lower() == query.strip().lower():
+                item["answer"] = answer
+                return
+
+        if len(self._memory) >= self._max_memory_items:
+            self._memory.pop(0)
+        self._memory.append({"query": query, "answer": answer})
+
+    def _token_overlap_retrieval(self, text: str) -> Tuple[Optional[Dict[str, str]], float]:
+        # Fallback: token-overlap cosine.
+        q_tokens = self._token_counts(text)
+        best_item: Optional[Dict[str, str]] = None
+        best_score = 0.0
+        for item in self._memory:
+            score = self._cosine_counts(q_tokens, self._token_counts(item["query"]))
+            if score > best_score:
+                best_score = score
+                best_item = item
+        return best_item, best_score
 
     def _cognition(self, text: str) -> str:
         return (

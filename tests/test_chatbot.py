@@ -77,6 +77,18 @@ class OfflineChatbotTests(unittest.TestCase):
             self.assertIn("[Injected knowledge]", out)
             self.assertIn("notes:", out)
 
+    def test_malformed_trained_model_falls_back_gracefully(self):
+        with tempfile.TemporaryDirectory() as td:
+            td_path = Path(td)
+            bad_model = td_path / "intent_model.json"
+            bad_model.write_text("{not valid json")
+
+            from Lando_Project.chatbot.engine import TrainedIntentModel
+
+            model = TrainedIntentModel(model_path=bad_model)
+            self.assertFalse(model.available)
+            self.assertIsNone(model.predict("hello"))
+
 
 if __name__ == "__main__":
     unittest.main()
