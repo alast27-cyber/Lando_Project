@@ -41,7 +41,7 @@ repeatable reactions over expensive global interventions.
   - Maps Prometheus query outputs into external metrics consumable by the HPA.
 - `Lando_Project/helm/templates/hpa.yaml`
   - Defines resource + external-metric autoscaling behavior.
-- `Lando_Project/workflows/prometheus-rules-test.yml`
+- `.github/workflows/prometheus-rules-test.yml`
   - Validates manifests and confirms core metric/doc assumptions in CI.
 
 ## Required Secrets
