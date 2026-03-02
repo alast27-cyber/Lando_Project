@@ -1,4 +1,6 @@
 ---
+# Keep this workflow under .github/workflows
+# so GitHub Actions discovers and runs it.
 name: Full CI/CD, Observability, and External-Metric HPA
 
 "on":
