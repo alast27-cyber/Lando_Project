@@ -21,6 +21,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Ensure workflow is in GitHub-discoverable path
+        run: |
+          test -f .github/workflows/prometheus-rules-test.yml
+          test ! -f Lando_Project/workflows/prometheus-rules-test.yml
+
       - name: Install yamllint and kubeconform
         run: |
           python3 -m pip install --upgrade pip
