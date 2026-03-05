@@ -48,8 +48,14 @@ jobs:
 
       - name: Ensure workflows are only under .github/workflows
         run: |
-          if find Lando_Project/workflows -maxdepth 1 -type f \( -name "*.yml" -o -name "*.yaml" \) 2>/dev/null | grep -q .; then
-            echo "Workflow files were found under Lando_Project/workflows. Move them to .github/workflows."
+          disallowed_files="$({
+            git ls-files 'Lando_Project/workflows/*.yml'
+            git ls-files 'Lando_Project/workflows/*.yaml'
+          })"
+          if [ -n "$disallowed_files" ]; then
+            echo "Workflow files were found under Lando_Project/workflows."
+            echo "Move them to .github/workflows."
+            echo "$disallowed_files"
             exit 1
           fi
 
