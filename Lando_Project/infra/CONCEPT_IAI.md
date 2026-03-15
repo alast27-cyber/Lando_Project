@@ -88,3 +88,14 @@ IAI reframes operating systems from static resource managers into adaptive,
 energy-aware organisms. By grounding control in duality, contradiction analysis,
 and instinct-first execution, AIOS can become faster, more resilient, and
 more autonomous over time.
+
+## 8. Prototype Implementation in This Repository
+A runnable reference implementation of the layered IAI decision flow now exists in:
+- `Lando_Project/infra/iai_neural_network.py`
+
+It implements:
+- **ILL encoding** from telemetry into contradiction tensors.
+- **IPS reflex matching** over sparse instinct circuits.
+- **CLL escalation** when confidence is below threshold.
+- **Instinct synthesis** that pushes successful cognitive actions back into IPS.
+- **Decagonal topology shaping** for columns 4-8 based on input complexity.
