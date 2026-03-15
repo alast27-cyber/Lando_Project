@@ -41,8 +41,80 @@ repeatable reactions over expensive global interventions.
   - Maps Prometheus query outputs into external metrics consumable by the HPA.
 - `Lando_Project/helm/templates/hpa.yaml`
   - Defines resource + external-metric autoscaling behavior.
-- `Lando_Project/workflows/prometheus-rules-test.yml`
+- `.github/workflows/prometheus-rules-test.yml`
   - Validates manifests and confirms core metric/doc assumptions in CI.
+
+## Deployment and Verification Workflow
+
+### Prerequisites
+1. Kubernetes cluster with metrics-server installed.
+2. Prometheus + Prometheus Adapter available in-cluster.
+3. Helm release values aligned with expected metric names.
+
+### Apply Flow
+1. Apply/update adapter rules from `Lando_Project/monitoring/prometheus-adapter-config.yaml`.
+2. Deploy the HPA from `Lando_Project/helm/templates/hpa.yaml`.
+3. Confirm HPA external metrics are discovered:
+   ```bash
+   kubectl get --raw "/apis/external.metrics.k8s.io/v1beta1" | jq .
+   ```
+4. Confirm your target external metric resolves:
+   ```bash
+   kubectl get --raw "/apis/external.metrics.k8s.io/v1beta1/namespaces/default/http_requests_per_pod" | jq .
+   ```
+
+### Runtime Validation
+- Check HPA decision data:
+  ```bash
+  kubectl describe hpa <your-hpa-name>
+  ```
+- Watch replica adjustments:
+  ```bash
+  kubectl get hpa -w
+  ```
+- Inspect target workload scaling behavior:
+  ```bash
+  kubectl get deploy <your-workload> -w
+  ```
+
+## Troubleshooting Playbook
+
+### Symptom: `FailedGetExternalMetric`
+Possible causes:
+- Adapter query is returning no series.
+- Metric labels do not match the HPA selector namespace.
+- Prometheus scrape target is missing or stale.
+
+Checks:
+- Review adapter logs for query errors.
+- Run the equivalent query directly in Prometheus.
+- Confirm metric name and labels in adapter config match HPA expectations.
+
+### Symptom: HPA never scales above minimum replicas
+Possible causes:
+- Metric value is below threshold (`averageValue: "10"`).
+- CPU target too high for observed load profile.
+- Workload requests are oversized, reducing utilization percentage.
+
+Checks:
+- Compare actual traffic/load to configured thresholds.
+- Tune `averageValue` and/or `averageUtilization` conservatively.
+- Validate container resource requests are realistic.
+
+### Symptom: Oscillation (rapid up/down scaling)
+Possible causes:
+- Spiky request metric without smoothing.
+- Insufficient stabilization windows or cooldown behavior.
+
+Checks:
+- Add or tune HPA behavior policies.
+- Smooth external metric at query level (for example, rate windows).
+- Observe scale events over a longer period before retuning.
+
+## CI and Issue Tracking Notes
+- CI guardrails run from `.github/workflows/prometheus-rules-test.yml`.
+- Issue tracking for IAI and deployment follow-ups is maintained in
+  `Lando_Project/infra/ISSUE_STATUS.md`.
 
 ## Required Secrets
 - `KUBECONFIG_DATA`

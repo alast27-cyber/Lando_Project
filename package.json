@@ -1,0 +1,15 @@
+{
+  "name": "lando-project",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Deployment and infrastructure support files for Lando Project.",
+  "scripts": {
+    "start": "python3 -m http.server 4173",
+    "test:iai": "python3 -m unittest tests/test_iai_neural_network.py -v",
+    "check:vercel": "python3 -m json.tool vercel.json > /dev/null",
+    "check": "npm run check:vercel && npm run test:iai"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
