@@ -1,0 +1,1 @@
+{\n  "name": "landoproject",\n  "version": "1.0.0",\n  "private": true,\n  "scripts": {\n    "dev": "vercel dev",\n    "build": "vercel build",\n    "deploy": "vercel --prod"\n  },\n  "dependencies": {\n    "express": "^4.17.1"\n  },\n  "devDependencies": {\n    "@vercel/node": "^1.10.0"\n  }\n}
