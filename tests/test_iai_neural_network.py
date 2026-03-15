@@ -3,6 +3,7 @@ import unittest
 from Lando_Project.infra.iai_neural_network import (
     IAIDecisionEngine,
     InstinctCircuit,
+    IntuitiveLearningLayer,
     TelemetryInput,
 )
 
@@ -53,6 +54,33 @@ class TestIAINeuralNetwork(unittest.TestCase):
         self.assertEqual(result.source_layer, "CLL")
         self.assertGreater(result.confidence, 0.8)
         self.assertGreater(len(engine.ips.circuits), initial_circuits)
+
+    def test_internal_contradiction_uses_low_battery_signal(self):
+        ill = IntuitiveLearningLayer()
+
+        low_battery = TelemetryInput(
+            battery_level=0.1,
+            cpu_demand=0.9,
+            cpu_temp_c=40,
+            network_mbps=10,
+            disk_iops=100,
+            latency_ms=10,
+        )
+        high_battery = TelemetryInput(
+            battery_level=0.9,
+            cpu_demand=0.9,
+            cpu_temp_c=40,
+            network_mbps=10,
+            disk_iops=100,
+            latency_ms=10,
+        )
+
+        low_internal = ill.encode(low_battery).features[0]
+        high_internal = ill.encode(high_battery).features[0]
+
+        self.assertGreater(low_internal, high_internal)
+        self.assertEqual(high_internal, 0.0)
+
 
 
 if __name__ == "__main__":

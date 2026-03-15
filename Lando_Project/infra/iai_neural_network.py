@@ -7,7 +7,7 @@ This module provides a lightweight implementation of the architecture described 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Callable, Dict, List, Sequence, Tuple
+from typing import Callable, List, Sequence, Tuple
 
 
 @dataclass(frozen=True)
@@ -50,17 +50,24 @@ class DecagonalTopology:
 class IntuitiveLearningLayer:
     """Encodes raw telemetry into contradiction-aware tensors."""
 
+    @staticmethod
+    def _clamp_ratio(value: float) -> float:
+        return min(1.0, max(0.0, value))
+
     def encode(self, telemetry: TelemetryInput) -> ContradictionTensor:
+        battery = self._clamp_ratio(telemetry.battery_level)
+        cpu_demand = self._clamp_ratio(telemetry.cpu_demand)
+
         # Low-battery + high-demand is an internal contradiction that should
         # increase as battery drops below the safety midpoint.
-        internal_contradiction = telemetry.cpu_demand * max(0.0, 0.5 - telemetry.battery_level)
+        internal_contradiction = cpu_demand * max(0.0, 0.5 - battery)
         external_contradiction = max(0.0, telemetry.network_mbps - 100) * max(
             0.0, telemetry.disk_iops - 3000
         )
         synthesis_contradiction = telemetry.latency_ms * (telemetry.cpu_temp_c / 100.0)
 
         opposing_aspects = (
-            telemetry.cpu_demand - telemetry.battery_level,
+            cpu_demand - battery,
             telemetry.network_mbps / 1000.0 - telemetry.disk_iops / 10000.0,
             telemetry.cpu_temp_c / 100.0 - telemetry.latency_ms / 500.0,
         )
