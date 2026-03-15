@@ -51,7 +51,9 @@ class IntuitiveLearningLayer:
     """Encodes raw telemetry into contradiction-aware tensors."""
 
     def encode(self, telemetry: TelemetryInput) -> ContradictionTensor:
-        internal_contradiction = telemetry.cpu_demand * max(0.0, telemetry.battery_level - 0.5)
+        # Low-battery + high-demand is an internal contradiction that should
+        # increase as battery drops below the safety midpoint.
+        internal_contradiction = telemetry.cpu_demand * max(0.0, 0.5 - telemetry.battery_level)
         external_contradiction = max(0.0, telemetry.network_mbps - 100) * max(
             0.0, telemetry.disk_iops - 3000
         )
