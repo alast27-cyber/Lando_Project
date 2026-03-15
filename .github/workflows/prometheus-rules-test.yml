@@ -37,7 +37,14 @@ jobs:
           yamllint \
             Lando_Project/monitoring/prometheus-adapter-config.yaml \
             Lando_Project/helm/templates/hpa.yaml \
-            Lando_Project/workflows/prometheus-rules-test.yml
+            .github/workflows/prometheus-rules-test.yml
+
+      - name: Ensure workflows are only under .github/workflows
+        run: |
+          if find Lando_Project/workflows -maxdepth 1 -type f \( -name "*.yml" -o -name "*.yaml" \) 2>/dev/null | grep -q .; then
+            echo "Workflow files were found under Lando_Project/workflows. Move them to .github/workflows."
+            exit 1
+          fi
 
       - name: Validate HPA schema
         run: |
