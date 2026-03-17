@@ -1,0 +1,37 @@
+/*
+ * IBOS Infon Entanglement Protocol: infon_entangle.fop
+ * Translation of Legacy Quantum Entangle Protocol to IBOS Native.
+ * Purpose: Manages non-local Infon state synchronization.
+ */
+
+// Rule 1: Infon State Initialization (Replaces Qubit __init__)
+RULE Initialize_Infon_State(Node_ID) {
+  LHS: { State: NULL }
+  RHS: { State: SUPERPOSITION_0_1, Node: Node_ID }
+}
+
+// Rule 2: Infon Entanglement (Replaces Qubit.entangle)
+// Establishes a Rulial-Link between two Infon nodes.
+RULE Entangle_Infons(Node_A, Node_B) {
+  LHS: { Node_A: SUPERPOSITION, Node_B: SUPERPOSITION }
+  RHS: { Bond: ENTANGLED_EPR_PAIR, State: LINKED_00_11 }
+  METADATA: {
+    Propagation: "Rulial_Manifold_Instantaneous"
+  }
+}
+
+// Rule 3: Infon Collapse (Replaces Qubit.measure)
+// Collapses superposition and propagates state via the Rulial Manifold.
+RULE Collapse_Infon_State(Observer_Action) {
+  LHS: { Bond: ENTANGLED_EPR_PAIR, Observer: MEASURE }
+  RHS: { State: CLASSICAL_0_OR_1, Propagation: RULIAL_SYNC }
+  METADATA: {
+    Spooky_Action: "Instantaneous_Partner_Collapse"
+  }
+}
+
+// Rule 4: Remote Infon Communication (Replaces DecentralizedNode.execute_remote_communication)
+RULE Execute_Remote_Infon_Comm(Node_A, Node_B) {
+  LHS: { Node_A: OBSERVE, Node_B: ENTANGLED_LINK }
+  RHS: { Result: CLASSICAL_STATE, Sync: Node_B_COLLAPSED }
+}
